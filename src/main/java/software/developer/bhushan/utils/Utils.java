@@ -1,6 +1,6 @@
 package software.developer.bhushan.utils;
 
-import software.developer.bhushan.ui.ATM_GUI;
+import software.developer.bhushan.ui.ATM;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -39,7 +39,7 @@ public class Utils {
         String acNo = "None";
         while (cnt != 0){
             acNo = generateRandomNumber(5);
-            cnt = ATM_GUI.databaseHelper.getUserTable().countUsersByACNo(ATM_GUI.databaseHelper.getConnection(),acNo);
+            cnt = ATM.databaseHelper.getUserTable().countUsersByACNo(ATM.databaseHelper.getConnection(),acNo);
         }
         return acNo;
     }

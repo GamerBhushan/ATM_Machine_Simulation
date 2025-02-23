@@ -1,10 +1,12 @@
 package software.developer.bhushan.ui;
 
 import software.developer.bhushan.annotations.MC;
+import software.developer.bhushan.components.StylishButtons;
 import software.developer.bhushan.font.FontUtils;
 import software.developer.bhushan.res.Resources;
 import software.developer.bhushan.sqlite.SQLiteDatabaseHelper;
 import software.developer.bhushan.sqlite.models.UserModel;
+import software.developer.bhushan.utils.FieldUtils;
 import software.developer.bhushan.utils.Utils;
 
 import javax.swing.*;
@@ -16,7 +18,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
-public class ATM_GUI extends JFrame {
+public class ATM extends JFrame {
     public static SQLiteDatabaseHelper databaseHelper = new SQLiteDatabaseHelper();
     private Container container = this.getContentPane();
     private String title = "ATM GUI Machine Simulation";
@@ -32,14 +34,11 @@ public class ATM_GUI extends JFrame {
 
     private boolean isUserLogin = false;
 
-    public static void main(String[] args) {
-        new ATM_GUI();
-    }
 
-    public ATM_GUI() {
+    public ATM() {
         this.setTitle(title);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setSize(600, 600);
+        this.setSize(800, 600);
         this.setLayout(new BorderLayout());
 
         // === Main Panel with CardLayout ===
@@ -132,14 +131,14 @@ public class ATM_GUI extends JFrame {
                 if (uModel != null ){
                     if (uModel.getUser_Pin().equals(new String(pin.getPassword()))){
 //                        JOptionPane.showMessageDialog(ATM_GUI.this,"Login Success","Login Success",JOptionPane.PLAIN_MESSAGE);
-                        user = new User(ATM_GUI.this,uModel);
+                        user = new User(ATM.this,uModel);
                         showCard("UserHome");
 
                     }else {
-                        JOptionPane.showMessageDialog(ATM_GUI.this,"The Account Number Or Pin Is Invalid","Invalid Credentials",JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(ATM.this,"The Account Number Or Pin Is Invalid","Invalid Credentials",JOptionPane.ERROR_MESSAGE);
                     }
                 }else {
-                    JOptionPane.showMessageDialog(ATM_GUI.this,"The Account Number Or Pin Is Invalid","Invalid Credentials",JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(ATM.this,"The Account Number Or Pin Is Invalid","Invalid Credentials",JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
@@ -210,7 +209,7 @@ public class ATM_GUI extends JFrame {
                 }
             }
         });
-        autoLoginThread.start();
+//        autoLoginThread.start();
         return panel;
     }
 
@@ -248,6 +247,7 @@ public class ATM_GUI extends JFrame {
         nameField.setFont(FontUtils.Heading_2_Plain);
 
         JTextField pinField = new JTextField(15);
+        FieldUtils.makeFieldPinField(pinField);
         pinField.setFont(FontUtils.Heading_2_Plain);
 
         JTextField mobileField = new JTextField(15);
@@ -283,8 +283,8 @@ public class ATM_GUI extends JFrame {
                         || emailField.getText().replace(" ","").length() == 0
                         || pinField.getText().replace(" ","").length() == 0
                 ){
-                    JOptionPane.showMessageDialog(ATM_GUI.this,"Please Fill Proper Information","Invalid Credentials",JOptionPane.ERROR_MESSAGE);
-                }else{
+                    JOptionPane.showMessageDialog(ATM.this,"Please Fill Proper Information","Invalid Credentials",JOptionPane.ERROR_MESSAGE);
+                } else{
                     UserModel uModel = new UserModel();
 
                     uModel.setUser_Balance(0.0);
@@ -295,7 +295,7 @@ public class ATM_GUI extends JFrame {
                     uModel.setUser_Mobile_Number(mobileField.getText());
                     databaseHelper.getUserTable().insert(databaseHelper.getConnection(),uModel);
 //                    JOptionPane.showMessageDialog(ATM_GUI.this,,"Account Created Successfully",JOptionPane.INFORMATION_MESSAGE);
-                    showMessageDialog(ATM_GUI.this,"Account Created Successfully","Account Created Successfully\n Remember Your AC NO : "+uModel.getUser_Account_Number()+"\nAnd Pin For Login.",JOptionPane.INFORMATION_MESSAGE,new ImageIcon((new ImageIcon(Resources.logoPath).getImage().getScaledInstance(20,20,1))));
+                    showMessageDialog(ATM.this,"Account Created Successfully","Account Created Successfully\n Remember Your AC NO : "+uModel.getUser_Account_Number()+"\nAnd Pin For Login.",JOptionPane.INFORMATION_MESSAGE,new ImageIcon((new ImageIcon(Resources.logoPath).getImage().getScaledInstance(20,20,1))));
                     showCard("Login");
                 }
             }
@@ -366,14 +366,17 @@ public class ATM_GUI extends JFrame {
         DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
 
         JTable userTable = new JTable(tableModel);
+        userTable.setRowHeight(20);
         userTable.setFont(FontUtils.Heading_3_Plain);
+
         userTable.getTableHeader().setFont(FontUtils.Heading_3_Bold);
 
         JScrollPane scrollPane = new JScrollPane(userTable);
         panel.add(scrollPane, BorderLayout.CENTER);
 
         JButton backBtn = new JButton("Back to Login");
-        backBtn.setFont(FontUtils.Heading_3_Plain);
+        StylishButtons.styleButton(backBtn);
+//        backBtn.setFont(FontUtils.Heading_3_Plain);
         backBtn.addActionListener(e -> showCard("Login"));
         panel.add(backBtn, BorderLayout.SOUTH);
 

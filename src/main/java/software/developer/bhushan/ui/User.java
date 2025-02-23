@@ -5,7 +5,6 @@ import software.developer.bhushan.font.FontUtils;
 import software.developer.bhushan.sqlite.models.UserModel;
 
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -19,7 +18,7 @@ public class User {
 
     private CardLayout cardLayout = new CardLayout();
     private JPanel cardMainPanel = new JPanel(cardLayout);
-    private ATM_GUI atmGui;
+    private ATM atmGui;
 
     private final String CardUserOptions = "CardUserOptions",
             CardAccountBalanceInquiry = "CardAccountBalanceInquiry"
@@ -30,7 +29,7 @@ public class User {
             ,CardMyProfile = "CardMyProfile";
 
 
-    public User(ATM_GUI atmGui,UserModel currentLoginUser){
+    public User(ATM atmGui, UserModel currentLoginUser){
         this.currentLoginUser = currentLoginUser;
         this.atmGui = atmGui;
     }
@@ -130,8 +129,25 @@ public class User {
         logoutButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                currentLoginUser = null;
-                atmGui.showCard("Login");
+                int choice = JOptionPane.showOptionDialog(
+                        atmGui, // Parent component
+                        "Are You Sure To Logout? 😊", // Message
+                        "Logout Confirmation", // Title
+                        JOptionPane.YES_NO_OPTION, // Option type
+                        JOptionPane.QUESTION_MESSAGE, // Message type
+                        null, // Custom icon (null = default)
+                        new String[]{"Logout", "Cancel"}, // Custom button labels
+                        "Cancel" // Default selected option
+                );
+                if (choice == JOptionPane.YES_OPTION) {
+//                    System.out.println("User chose to logout.");
+                    // Perform logout logic here
+                    currentLoginUser = null;
+                    atmGui.showCard("Login");
+                } else {
+//                    System.out.println("User canceled logout.");
+                }
+
             }
         });
         JButton myProfile = new JButton("My Profile");
@@ -213,16 +229,16 @@ public class User {
                 Arrays.fill(pinChars, ' ');
 
                 if (enteredPin.equals(currentLoginUser.getUser_Pin())) {
-                    ATM_GUI.showMessageDialog(
-                            ATM_GUI.getWindows()[0],
+                    ATM.showMessageDialog(
+                            ATM.getWindows()[0],
                             "Balance Inquiry Successful",
                             "Your Balance Is: $ " + currentLoginUser.getUser_Balance(),
                             JOptionPane.INFORMATION_MESSAGE,
                             null
                     );
                 } else {
-                    ATM_GUI.showMessageDialog(
-                            ATM_GUI.getWindows()[0],
+                    ATM.showMessageDialog(
+                            ATM.getWindows()[0],
                             "Invalid PIN",
                             "Please enter the correct PIN.",
                             JOptionPane.ERROR_MESSAGE,
