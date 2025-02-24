@@ -129,15 +129,14 @@ public class ATM extends JFrame {
                 UserModel uModel = databaseHelper.getUserTable().findUserByACNo(databaseHelper.getConnection(), accountno.getText());
                 if (uModel != null ){
                     if (uModel.getUser_Pin().equals(new String(pin.getPassword()))){
-//                        JOptionPane.showMessageDialog(ATM_GUI.this,"Login Success","Login Success",JOptionPane.PLAIN_MESSAGE);
                         user = new User(ATM.this,uModel);
                         showCard("UserHome");
 
                     }else {
-                        JOptionPane.showMessageDialog(ATM.this,"The Account Number Or Pin Is Invalid","Invalid Credentials",JOptionPane.ERROR_MESSAGE);
+                        showMessageDialog(ATM.this,"Invalid Credentials","The Account Number Or Pin Is Invalid",JOptionPane.ERROR_MESSAGE,null);
                     }
                 }else {
-                    JOptionPane.showMessageDialog(ATM.this,"The Account Number Or Pin Is Invalid","Invalid Credentials",JOptionPane.ERROR_MESSAGE);
+                    showMessageDialog(ATM.this,"Invalid Credentials","The Account Number Or Pin Is Invalid",JOptionPane.ERROR_MESSAGE,null);
                 }
             }
         });
@@ -285,7 +284,7 @@ public class ATM extends JFrame {
                         || emailField.getText().replace(" ","").length() == 0
                         || pinField.getText().replace(" ","").length() == 0
                 ){
-                    JOptionPane.showMessageDialog(ATM.this,"Please Fill Proper Information","Invalid Credentials",JOptionPane.ERROR_MESSAGE);
+                    showMessageDialog(ATM.this,"Invalid Credentials","Please Fill Proper Information",JOptionPane.ERROR_MESSAGE,null);
                 } else{
                     UserModel uModel = new UserModel();
 
@@ -296,7 +295,6 @@ public class ATM extends JFrame {
                     uModel.setUser_Pin(pinField.getText());
                     uModel.setUser_Mobile_Number(mobileField.getText());
                     databaseHelper.getUserTable().insert(databaseHelper.getConnection(),uModel);
-//                    JOptionPane.showMessageDialog(ATM_GUI.this,,"Account Created Successfully",JOptionPane.INFORMATION_MESSAGE);
                     showMessageDialog(ATM.this,"Account Created Successfully","Account Created Successfully\n Remember Your AC NO : "+uModel.getUser_Account_Number()+"\nAnd Pin For Login.",JOptionPane.INFORMATION_MESSAGE,new ImageIcon((new ImageIcon(Resources.logoPath).getImage().getScaledInstance(20,20,1))));
                     showCard("Login");
                 }
@@ -424,9 +422,7 @@ public class ATM extends JFrame {
 //        JLabel msgLabel = new JLabel(msg);
 //        msgLabel.setFont(FontUtils.Heading_3_Plain);
 //        if (icon == null){
-//            JOptionPane.showMessageDialog(parent,msgLabel,title,msgType);
 //        }else {
-//            JOptionPane.showMessageDialog(parent,msgLabel,title,msgType,icon);
 //        }
 //
 //    }
