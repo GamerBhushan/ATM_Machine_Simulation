@@ -15,10 +15,12 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 
 public class User {
     private  UserModel currentLoginUser;
@@ -28,6 +30,7 @@ public class User {
     private CardLayout cardLayout = new CardLayout();
     private JPanel cardMainPanel = new JPanel(cardLayout);
     private ATM atmGui;
+    private  JLabel welcomeLabel = new JLabel();
 
     private final String CardUserOptions = "CardUserOptions",
             CardAccountBalanceInquiry = "CardAccountBalanceInquiry"
@@ -35,7 +38,8 @@ public class User {
             ,CardCashDeposit = "CardCashDeposit"
             ,CardPINChange = "CardPINChange"
             ,CardTransactionHistory = "CardTransactionHistory"
-            ,CardMyProfile = "CardMyProfile";
+            ,CardMyProfile = "CardMyProfile"
+            ,CardTransferToBankAccount = "CardTransferToBankAccount";
 
     private JLabel balanceLabel = new JLabel();
 
@@ -72,29 +76,21 @@ public class User {
 
     public JPanel headerPanel(){
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER,10,10));
-        JLabel welcomeLabel = new JLabel();
-        if (currentLoginUser.getUser_Name().length() >= 16){
-           welcomeLabel.setText("Welcome "+currentLoginUser.getUser_Name().substring(0,16)+"...");
-        }else {
-            welcomeLabel.setText("Welcome "+currentLoginUser.getUser_Name());
-        }
         welcomeLabel.setFont(FontUtils.Heading_2_Bold);
+        setWelcomeLabel();
         panel.add(welcomeLabel);
-
-//        JPanel balancePanel = new JPanel(new FlowLayout(FlowLayout.RIGHT,10,10));
-
-
-//        balancePanel.add(balanceLabel);
-
-//        JButton settingButton = new JButton("Settings");
-//        settingButton.setFont(FontUtils.Heading_3_Plain);
         balanceLabel.setFont(FontUtils.Heading_2_Bold);
-
         panel.add(balanceLabel);
-
         return panel;
     }
 
+    private void setWelcomeLabel(){
+        if (currentLoginUser.getUser_Name().length() >= 16){
+            welcomeLabel.setText("Welcome "+currentLoginUser.getUser_Name().substring(0,16)+"...");
+        }else {
+            welcomeLabel.setText("Welcome "+currentLoginUser.getUser_Name());
+        }
+    }
 
     public JPanel headerPanel(String heading){
         JPanel panel = new JPanel(new FlowLayout(FlowLayout.CENTER,10,10));
@@ -115,25 +111,53 @@ public class User {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        JPanel panel = new JPanel();
-        panel.setLayout(gbl);
+        JPanel panel = new JPanel(gbl);
+
+        // Title Label (Centered)
+        JLabel titleLabel = new JLabel("User Options", SwingConstants.CENTER);
+        titleLabel.setFont(FontUtils.Heading_2_Bold);
+
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2; // Span across both columns
+        gbc.anchor = GridBagConstraints.CENTER;
+        panel.add(titleLabel, gbc);
+
+        // Reset gridwidth and anchor for buttons
+        gbc.gridwidth = 1;
+        gbc.anchor = GridBagConstraints.CENTER;
 
         ArrayList<JButton> buttons = getJButtons();
         int nCol = 2;
+        int row = 1; // Start from row 1 (after the title)
 
         for (int i = 0; i < buttons.size(); i++) {
             gbc.gridx = i % nCol;
-            gbc.gridy = i / nCol;
-//            buttons.get(i).setFont(FontUtils.Heading_2_Plain);
+            gbc.gridy = row;
+
             StylishButtons.styleButton(buttons.get(i));
-            if (buttons.get(i).getText().equals("Logout")){
+
+            // Special handling for full-width buttons
+            if (buttons.get(i).getText().equals("Logout") || buttons.get(i).getText().equals("Transfer To Bank Account")) {
                 gbc.gridwidth = 2;
+                gbc.gridx = 0; // Start at first column
+                row++; // Move to the next row
+            } else {
+                gbc.gridwidth = 1;
+                if (i % nCol == 1) row++; // Move to next row after two buttons
             }
+
             panel.add(buttons.get(i), gbc);
         }
 
+        // Ensure panel updates
+        panel.revalidate();
+        panel.repaint();
+
         return panel;
     }
+
+
 
 
     private  ArrayList<JButton> getJButtons() {
@@ -173,6 +197,18 @@ public class User {
             @Override
             public void actionPerformed(ActionEvent e) {
                 showCard(CardTransactionHistory);
+            }
+        });
+
+        JButton transferToBankAccount = new JButton("Transfer To Bank Account");
+        transferToBankAccount.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (ATM.databaseHelper.getUserTable().countAll(ATM.databaseHelper.getConnection()) == 1){
+                    ATM.showMessageDialog(atmGui,"Only One User","In This Machine There is Only One User \nSo Bank Transfer is not Possible.\nCreate Another User For it.",JOptionPane.INFORMATION_MESSAGE,null);
+                    return;
+                }
+                showCard(CardTransferToBankAccount);
             }
         });
 
@@ -216,6 +252,7 @@ public class User {
         buttons.add(cashDepositButton);
         buttons.add(pinChangeButton);
         buttons.add(transactionHistoryButton);
+        buttons.add(transferToBankAccount);
         buttons.add(logoutButton);
         return buttons;
     }
@@ -517,33 +554,307 @@ public class User {
 
 
     private void loadTransactionData(DefaultTableModel tableModel) {
-        String QUERY = "SELECT * FROM Transactions";
+        String QUERY = "SELECT * FROM Transactions WHERE Transaction_From = ? OR Transaction_To = ?";
         try (Connection connection = ATM.databaseHelper.getConnection();
-             Statement stmt = connection.createStatement();
-             ResultSet rs = stmt.executeQuery(QUERY)) {
+             PreparedStatement pstmt = connection.prepareStatement(QUERY)) {
 
-            while (rs.next()) {
-                Object[] rowData = {
-                        rs.getString("Transaction_ID"),
-                        rs.getString("Transaction_From"),
-                        rs.getString("Transaction_To"),
-                        rs.getDouble("Transaction_Amount"),
-                        rs.getString("Transaction_Type"),
-                        rs.getString("Transaction_Date"),
-                        rs.getString("Transaction_Time")
-                };
-                tableModel.addRow(rowData);
+            pstmt.setString(1, currentLoginUser.getUser_Account_Number());
+            pstmt.setString(2, currentLoginUser.getUser_Account_Number());
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    double amount = rs.getDouble("Transaction_Amount");
+                    String transactionType = rs.getString("Transaction_Type");
+                    String transactionFrom = rs.getString("Transaction_From");
+                    String transactionTo = rs.getString("Transaction_To");
+                    String formattedAmount;
+
+                    // Determine prefix based on transaction type
+                    if (TransactionModel.TYPE_WITHDRAWAL.equals(transactionType)) {
+                        formattedAmount = "-" + amount;
+                    } else if (TransactionModel.TYPE_DEPOSIT.equals(transactionType)) {
+                        formattedAmount = "+" + amount;
+                    } else {
+                        // For bank transfers, use "-" if sent, "+" if received
+                        formattedAmount = transactionFrom.equals(currentLoginUser.getUser_Account_Number())
+                                ? "-" + amount
+                                : "+" + amount;
+                    }
+
+                    Object[] rowData = {
+                            rs.getString("Transaction_ID"),
+                            transactionFrom,
+                            transactionTo,
+                            formattedAmount, // Updated amount with prefix
+                            transactionType,
+                            rs.getString("Transaction_Date"),
+                            rs.getString("Transaction_Time")
+                    };
+                    tableModel.addRow(rowData);
+                }
             }
         } catch (Exception e) {
             System.err.println("Error fetching transactions: " + e.getMessage());
         }
     }
 
-    private JPanel cardMyProfilePanel(){
-        JPanel panel = new JPanel();
+
+
+
+    private JPanel cardMyProfilePanel() {
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        JLabel title = new JLabel("My Profile", SwingConstants.CENTER);
+        title.setFont(FontUtils.Heading_2_Bold);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        panel.add(title, gbc);
+
+        gbc.gridwidth = 1;
+        JLabel accountLabel = new JLabel("Account Number:");
+        accountLabel.setFont(FontUtils.Heading_3_Plain);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        panel.add(accountLabel, gbc);
+
+        JTextField accountField = new JTextField(currentLoginUser.getUser_Account_Number(), 15);
+        accountField.setFont(FontUtils.Heading_3_Plain);
+        accountField.setEditable(false);
+        gbc.gridx = 1;
+        panel.add(accountField, gbc);
+
+        JLabel pinLabel = new JLabel("PIN:");
+        pinLabel.setFont(FontUtils.Heading_3_Plain);
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        panel.add(pinLabel, gbc);
+
+        JTextField pinField = new JTextField(currentLoginUser.getUser_Pin(), 15);
+        pinField.setFont(FontUtils.Heading_3_Plain);
+        pinField.setEditable(false);
+        gbc.gridx = 1;
+        panel.add(pinField, gbc);
+
+        JLabel balanceLabel = new JLabel("Balance:");
+        balanceLabel.setFont(FontUtils.Heading_3_Plain);
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        panel.add(balanceLabel, gbc);
+
+        JTextField balanceField = new JTextField(String.valueOf(currentLoginUser.getUser_Balance()), 15);
+        balanceField.setFont(FontUtils.Heading_3_Plain);
+        balanceField.setEditable(false);
+        gbc.gridx = 1;
+        panel.add(balanceField, gbc);
+
+        JLabel nameLabel = new JLabel("Name:");
+        nameLabel.setFont(FontUtils.Heading_3_Plain);
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        panel.add(nameLabel, gbc);
+
+        JTextField nameField = new JTextField(currentLoginUser.getUser_Name(), 15);
+        nameField.setFont(FontUtils.Heading_3_Plain);
+        gbc.gridx = 1;
+        panel.add(nameField, gbc);
+
+        JLabel emailLabel = new JLabel("Email:");
+        emailLabel.setFont(FontUtils.Heading_3_Plain);
+        gbc.gridx = 0;
+        gbc.gridy = 5;
+        panel.add(emailLabel, gbc);
+
+        JTextField emailField = new JTextField(currentLoginUser.getUser_Email(), 15);
+        emailField.setFont(FontUtils.Heading_3_Plain);
+        gbc.gridx = 1;
+        panel.add(emailField, gbc);
+
+        JLabel mobileLabel = new JLabel("Mobile Number:");
+        mobileLabel.setFont(FontUtils.Heading_3_Plain);
+        gbc.gridx = 0;
+        gbc.gridy = 6;
+        panel.add(mobileLabel, gbc);
+
+        JTextField mobileField = new JTextField(currentLoginUser.getUser_Mobile_Number(), 15);
+        mobileField.setFont(FontUtils.Heading_3_Plain);
+        gbc.gridx = 1;
+        panel.add(mobileField, gbc);
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton updateButton = new JButton("Update");
+        StylishButtons.styleButton(updateButton);
+        buttonPanel.add(getBackButton());
+        buttonPanel.add(updateButton);
+
+        gbc.gridx = 0;
+        gbc.gridy = 7;
+        gbc.gridwidth = 2;
+        panel.add(buttonPanel, gbc);
+
+        updateButton.addActionListener(e -> {
+            if (nameField.getText().isEmpty() || emailField.getText().isEmpty() || mobileField.getText().isEmpty()) {
+                ATM.showMessageDialog(atmGui, "Error", "All fields must be filled!", JOptionPane.ERROR_MESSAGE,null);
+            } else {
+                currentLoginUser.setUser_Name(nameField.getText());
+                currentLoginUser.setUser_Email(emailField.getText());
+                currentLoginUser.setUser_Mobile_Number(mobileField.getText());
+                ATM.databaseHelper.getUserTable().updateByAccountNumber(ATM.databaseHelper.getConnection(),currentLoginUser);
+                setWelcomeLabel();
+                ATM.showMessageDialog(panel, "Success", "Profile updated successfully!", JOptionPane.INFORMATION_MESSAGE,null);
+            }
+        });
 
         return panel;
     }
+
+    private JPanel cardTransferToBankAccountPanel() {
+
+        JPanel panel = new JPanel(new GridBagLayout());
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 10, 10, 10);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Title Label
+        JLabel titleLabel = new JLabel("Transfer To Bank Account", SwingConstants.CENTER);
+        titleLabel.setFont(FontUtils.Heading_2_Bold);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        panel.add(titleLabel, gbc);
+
+        // Fetch Users excluding currentLoginUser
+        ArrayList<UserModel> userList = ATM.databaseHelper.getUserTable()
+                .fetchAll(ATM.databaseHelper.getConnection());
+        JComboBox<String> userDropdown = new JComboBox<>();
+        userDropdown.setFont(FontUtils.Heading_2_Plain);
+
+        HashMap<String, UserModel> userMap = new HashMap<>();
+
+        for (UserModel user : userList) {
+            if (!user.getUser_Account_Number().equals(currentLoginUser.getUser_Account_Number())) {
+                String displayText = user.getUser_Account_Number() + " : " + user.getUser_Name();
+                userDropdown.addItem(displayText);
+                userMap.put(displayText, user);
+            }
+        }
+
+        // Transfer To User Label
+        JLabel transferToLabel = new JLabel("Select User :");
+        transferToLabel.setFont(FontUtils.Heading_2_Plain);
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        panel.add(transferToLabel, gbc);
+
+        // Transfer To User Dropdown
+        gbc.gridx = 1;
+        panel.add(userDropdown, gbc);
+
+        // Amount Label
+        JLabel amountLabel = new JLabel("Amount :");
+        amountLabel.setFont(FontUtils.Heading_2_Plain);
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        panel.add(amountLabel, gbc);
+
+        // Amount Field
+        JTextField amountField = new JTextField(10);
+        amountField.setFont(FontUtils.Heading_2_Plain);
+        FieldUtils.makeFieldFloatField(amountField);
+        gbc.gridx = 1;
+        panel.add(amountField, gbc);
+
+        // PIN Label
+        JLabel pinLabel = new JLabel("PIN :");
+        pinLabel.setFont(FontUtils.Heading_2_Plain);
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        panel.add(pinLabel, gbc);
+
+        // PIN Field
+        JPasswordField pinField = new JPasswordField(10);
+        pinField.setFont(FontUtils.Heading_2_Plain);
+        FieldUtils.makeFieldPinField(pinField);
+        gbc.gridx = 1;
+        panel.add(pinField, gbc);
+
+        // Button Panel
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JButton transferButton = new JButton("Transfer");
+        StylishButtons.styleButton(transferButton);
+        buttonPanel.add(getBackButton());
+        buttonPanel.add(transferButton);
+
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        panel.add(buttonPanel, gbc);
+
+        // Transfer Button Action
+        transferButton.addActionListener(e -> {
+            String selectedUserText = (String) userDropdown.getSelectedItem();
+            String amountText = amountField.getText().trim();
+            String enteredPin = new String(pinField.getPassword()).trim();
+
+            // Validate PIN
+            if (!enteredPin.equals(currentLoginUser.getUser_Pin())) {
+                ATM.showMessageDialog(atmGui, "Error", "Incorrect PIN!", JOptionPane.ERROR_MESSAGE, null);
+                return;
+            }
+
+            // Validate Amount
+            if (amountText.isEmpty() || Double.parseDouble(amountText) <= 0) {
+                ATM.showMessageDialog(atmGui, "Error", "Enter a valid transfer amount!", JOptionPane.ERROR_MESSAGE, null);
+                return;
+            }
+
+            double transferAmount = Double.parseDouble(amountText);
+            if (transferAmount > currentLoginUser.getUser_Balance()) {
+                ATM.showMessageDialog(atmGui, "Error", "Insufficient Balance!", JOptionPane.ERROR_MESSAGE, null);
+                return;
+            }
+
+            // Get Selected User
+            UserModel selectedUserToTransfer = userMap.get(selectedUserText);
+
+            if (selectedUserToTransfer == null) {
+                ATM.showMessageDialog(atmGui, "Error", "Invalid recipient selected!", JOptionPane.ERROR_MESSAGE, null);
+                return;
+            }
+
+            // Deduct balance from current user
+            currentLoginUser.setUser_Balance(currentLoginUser.getUser_Balance() - transferAmount);
+
+            // Add balance to the selected user
+            selectedUserToTransfer.setUser_Balance(selectedUserToTransfer.getUser_Balance() + transferAmount);
+
+            // Create transaction model
+            TransactionModel transactionModel = getTransactionModel(
+                    transferAmount + "",
+                    currentLoginUser.getUser_Account_Number(),
+                    selectedUserToTransfer.getUser_Account_Number(),
+                    TransactionModel.TYPE_BANK_TRANSFER
+            );
+
+            // Update users in the database
+            ATM.databaseHelper.getUserTable().updateByAccountNumber(ATM.databaseHelper.getConnection(), currentLoginUser);
+            ATM.databaseHelper.getUserTable().updateByAccountNumber(ATM.databaseHelper.getConnection(), selectedUserToTransfer);
+            ATM.databaseHelper.getTransactionTable().insert(ATM.databaseHelper.getConnection(), transactionModel);
+            balanceLabel.setText("$ "+currentLoginUser.getUser_Balance());
+            // Show success message
+            ATM.showMessageDialog(atmGui, "Success", "Transfer Successful!", JOptionPane.INFORMATION_MESSAGE, null);
+        });
+
+
+        return panel;
+    }
+
+
+
 
     private void showCard(String cardName) {
         cardMainPanel.removeAll();
@@ -562,6 +873,10 @@ public class User {
             cardMainPanel.add(cardMyProfilePanel(),CardMyProfile);
         }else if(cardName.equals(CardTransactionHistory)){
             cardMainPanel.add(showAllTransactionsPanel(),CardTransactionHistory);
+        }else if (cardName.equals(CardMyProfile)){
+            cardMainPanel.add(cardMyProfilePanel(),CardMyProfile);
+        }else if (cardName.equals(CardTransferToBankAccount)){
+            cardMainPanel.add(cardTransferToBankAccountPanel(),CardTransferToBankAccount);
         }
 
         cardLayout.show(cardMainPanel,cardName);

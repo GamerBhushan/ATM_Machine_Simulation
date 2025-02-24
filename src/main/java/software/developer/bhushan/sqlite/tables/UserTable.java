@@ -3,6 +3,7 @@ package software.developer.bhushan.sqlite.tables;
 import software.developer.bhushan.sqlite.models.UserModel;
 
 import java.sql.*;
+import java.util.ArrayList;
 
 public class UserTable {
     private final String TABLE_NAME = "Users";
@@ -126,4 +127,68 @@ public class UserTable {
         }
         return 0; // Return 0 if no users found or in case of an error
     }
+
+    public ArrayList<UserModel> fetchAll(Connection connection) {
+        ArrayList<UserModel> userList = new ArrayList<>();
+        String QUERY = "SELECT * FROM " + TABLE_NAME;
+
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(QUERY)) {
+
+            while (rs.next()) {
+                UserModel user = new UserModel();
+                user.setUser_Account_Number(rs.getString(COL_1));
+                user.setUser_Pin(rs.getString(COL_2));
+                user.setUser_Name(rs.getString(COL_3));
+                user.setUser_Balance(rs.getDouble(COL_4));
+                user.setUser_Email(rs.getString(COL_5));
+                user.setUser_Mobile_Number(rs.getString(COL_6));
+
+                userList.add(user);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching users: " + e.getMessage());
+        }
+
+        return userList;
+    }
+
+    public int countAll(Connection connection) {
+        String COUNT_QUERY = "SELECT COUNT(*) FROM " + TABLE_NAME;
+        try (Statement stmt = connection.createStatement();
+             ResultSet rs = stmt.executeQuery(COUNT_QUERY)) {
+
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error counting users: " + e.getMessage());
+        }
+        return 0; // Return 0 if an error occurs
+    }
+
+    public UserModel fetchByAccountNumber(Connection connection, String accountNumber) {
+        String QUERY = "SELECT * FROM Users WHERE User_Account_Number = ?";
+        try (PreparedStatement pstmt = connection.prepareStatement(QUERY)) {
+            pstmt.setString(1, accountNumber);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    UserModel user = new UserModel();
+                    user.setUser_Account_Number(rs.getString("User_Account_Number"));
+                    user.setUser_Pin(rs.getString("User_Pin"));
+                    user.setUser_Name(rs.getString("User_Name"));
+                    user.setUser_Balance(rs.getDouble("User_Balance"));
+                    user.setUser_Email(rs.getString("User_Email"));
+                    user.setUser_Mobile_Number(rs.getString("User_Mobile_Number"));
+                    return user;
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Error fetching user by account number: " + e.getMessage());
+        }
+        return null; // Return null if user is not found
+    }
+
+
+
 }

@@ -11,6 +11,7 @@ import software.developer.bhushan.utils.Utils;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -20,19 +21,17 @@ import java.sql.Statement;
 
 public class ATM extends JFrame {
     public static SQLiteDatabaseHelper databaseHelper = new SQLiteDatabaseHelper();
+    private UserModel autoLoginUser;
     private Container container = this.getContentPane();
     private String title = "ATM GUI Machine Simulation";
 
     private JPanel atmPanel = new JPanel();
     private BorderLayout borderLayout = new BorderLayout();
-
+    private  Thread autoLoginThread;
     private CardLayout cardLayout = new CardLayout();
     private JPanel mainPanel ;
 
-    private User user;
-
-
-    private boolean isUserLogin = false;
+    public User user;
 
 
     public ATM() {
@@ -196,20 +195,23 @@ public class ATM extends JFrame {
         panel.add(loginButton, gbc);
 
 //        AUTO
-        Thread autoLoginThread = new Thread(new Runnable() {
+         autoLoginThread = new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Thread.sleep(500);
-                    accountno.setText("38862");
-                    pin.setText("1234");
-                    loginButton.doClick();
+                    if (autoLoginUser != null){
+                        Thread.sleep(500);
+                        accountno.setText(autoLoginUser.getUser_Account_Number());
+                        Thread.sleep(500);
+                        pin.setText(autoLoginUser.getUser_Pin());
+                        Thread.sleep(500);
+                        loginButton.doClick();
+                    }
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
             }
         });
-        autoLoginThread.start();
         return panel;
     }
 
@@ -362,13 +364,17 @@ public class ATM extends JFrame {
     private JPanel showAllUsersPanel() {
         JPanel panel = new JPanel(new BorderLayout());
 
-        String[] columnNames = {"AC No", "PIN", "Name", "Balance", "Email", "Mobile"};
-        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0);
+        String[] columnNames = {"AC No", "PIN", "Name", "Balance", "Email", "Mobile", "Login"};
+        DefaultTableModel tableModel = new DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 6; // Only allow editing for the "Login" column
+            }
+        };
 
         JTable userTable = new JTable(tableModel);
-        userTable.setRowHeight(20);
+        userTable.setRowHeight(30);
         userTable.setFont(FontUtils.Heading_3_Plain);
-
         userTable.getTableHeader().setFont(FontUtils.Heading_3_Bold);
 
         JScrollPane scrollPane = new JScrollPane(userTable);
@@ -376,15 +382,17 @@ public class ATM extends JFrame {
 
         JButton backBtn = new JButton("Back to Login");
         StylishButtons.styleButton(backBtn);
-//        backBtn.setFont(FontUtils.Heading_3_Plain);
         backBtn.addActionListener(e -> showCard("Login"));
         panel.add(backBtn, BorderLayout.SOUTH);
 
-        loadUserData(tableModel);
+        // Load user data into the table
+        loadUserData(tableModel, userTable);
+
         return panel;
     }
 
-    private void loadUserData(DefaultTableModel tableModel) {
+
+    private void loadUserData(DefaultTableModel tableModel, JTable userTable) {
         String QUERY = "SELECT * FROM Users";
         try (Connection connection = databaseHelper.getConnection();
              Statement stmt = connection.createStatement();
@@ -397,14 +405,20 @@ public class ATM extends JFrame {
                         rs.getString("User_Name"),
                         rs.getDouble("User_Balance"),
                         rs.getString("User_Email"),
-                        rs.getString("User_Mobile_Number")
+                        rs.getString("User_Mobile_Number"),
+                        "Login"  // Placeholder text for button column
                 };
                 tableModel.addRow(rowData);
             }
         } catch (Exception e) {
             System.err.println("Error fetching users: " + e.getMessage());
         }
+
+        // Add Login Button Renderer and Editor
+        userTable.getColumnModel().getColumn(6).setCellRenderer(new ButtonRenderer());
+        userTable.getColumnModel().getColumn(6).setCellEditor(new ButtonEditor(new JCheckBox(), userTable));
     }
+
 
 //    public static void showMessageDialog(Component parent, String title, String msg, @MC(intValues = {JOptionPane. INFORMATION_MESSAGE,JOptionPane. WARNING_MESSAGE,JOptionPane. ERROR_MESSAGE,JOptionPane. QUESTION_MESSAGE,JOptionPane. PLAIN_MESSAGE}) int msgType,Icon icon ){
 //        JLabel msgLabel = new JLabel(msg);
@@ -454,6 +468,60 @@ public class ATM extends JFrame {
         mainPanel.repaint();     // 🔄 Repaint UI
     }
 
+    class ButtonRenderer extends JButton implements TableCellRenderer {
+        public ButtonRenderer() {
+            setOpaque(true);
+            StylishButtons.styleButton(this);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setText("Login");
+            return this;
+        }
+    }
+    class ButtonEditor extends DefaultCellEditor {
+        private JButton button;
+        private String userAccountNumber;
+        private JTable table;
+
+        public ButtonEditor(JCheckBox checkBox, JTable table) {
+            super(checkBox);
+            this.table = table;
+            button = new JButton("Login");
+            StylishButtons.styleButton(button);
+            button.addActionListener(e -> {
+                int row = table.getSelectedRow();
+                if (row != -1) {
+                    userAccountNumber = (String) table.getValueAt(row, 0); // Get AC No
+                    performLogin(userAccountNumber);
+                }
+            });
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            userAccountNumber = (String) table.getValueAt(row, 0); // Get AC No
+            button.setText("Login");
+            return button;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return "Login";
+        }
+
+        private void performLogin(String userAccountNumber) {
+            UserModel user = databaseHelper.getUserTable().fetchByAccountNumber(databaseHelper.getConnection(), userAccountNumber);
+            if (user != null) {
+                showCard("Login");
+                autoLoginUser = user;
+                autoLoginThread.start();
+            } else {
+                ATM.showMessageDialog(ATM.this, "Error", "User not found!", JOptionPane.ERROR_MESSAGE, null);
+            }
+        }
+    }
 
 }
 
