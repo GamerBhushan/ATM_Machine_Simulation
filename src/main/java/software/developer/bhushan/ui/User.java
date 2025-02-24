@@ -409,7 +409,7 @@ public class User {
             if (transactionType.equals(TransactionModel.TYPE_DEPOSIT) && amount > 0){
                 currentLoginUser.setUser_Balance(Double.parseDouble(String.format("%.2f",currentLoginUser.getUser_Balance()+amount)));
                 ATM.databaseHelper.getUserTable().updateByAccountNumber(ATM.databaseHelper.getConnection(),currentLoginUser);
-                TransactionModel transactionModel = getTransactionModel(amountStr,"Self","---",TransactionModel.TYPE_DEPOSIT);
+                TransactionModel transactionModel = getTransactionModel(amountStr,currentLoginUser.getUser_Account_Number(),"Self",TransactionModel.TYPE_DEPOSIT);
                 ATM.databaseHelper.getTransactionTable().insert(ATM.databaseHelper.getConnection(),transactionModel);
                 balanceLabel.setText("$ "+currentLoginUser.getUser_Balance());
                 ATM.showMessageDialog(atmGui,"Transaction Successful","Deposited Amount : "+amountStr,JOptionPane.INFORMATION_MESSAGE,null);
@@ -417,7 +417,7 @@ public class User {
             }else if (transactionType.equals(TransactionModel.TYPE_WITHDRAWAL) && currentLoginUser.getUser_Balance() >= amount && amount > 0){
                 currentLoginUser.setUser_Balance(Double.parseDouble(String.format("%.2f",currentLoginUser.getUser_Balance()-amount)));
                 ATM.databaseHelper.getUserTable().updateByAccountNumber(ATM.databaseHelper.getConnection(),currentLoginUser);
-                TransactionModel transactionModel = getTransactionModel(amountStr,"Self","---",TransactionModel.TYPE_WITHDRAWAL);
+                TransactionModel transactionModel = getTransactionModel(amountStr,currentLoginUser.getUser_Account_Number(),"Self",TransactionModel.TYPE_WITHDRAWAL);
                 ATM.databaseHelper.getTransactionTable().insert(ATM.databaseHelper.getConnection(),transactionModel);
                 balanceLabel.setText("$ "+currentLoginUser.getUser_Balance());
                 ATM.showMessageDialog(atmGui,"Transaction Successful","Withdrawal Amount : "+amountStr,JOptionPane.INFORMATION_MESSAGE,null);
