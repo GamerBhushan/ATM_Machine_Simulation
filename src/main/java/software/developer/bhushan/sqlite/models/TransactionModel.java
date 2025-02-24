@@ -3,6 +3,8 @@ package software.developer.bhushan.sqlite.models;
 public class TransactionModel {
     private String Transaction_ID,Transaction_From,Transaction_To,Transaction_Amount,Transaction_Type,Transaction_Date,Transaction_Time;
 
+    public static String TYPE_WITHDRAWAL = "Withdrawal";
+    public static String TYPE_DEPOSIT = "Deposit";
 
     public String getTransaction_ID() {
         return Transaction_ID;

@@ -24,7 +24,7 @@ public class FormPasswordField {
     }
 
     public JPanel create() {
-        formFieldGridBagConstraints.insets = new Insets(5, 5, 5, 5);
+//        formFieldGridBagConstraints.insets = new Insets(5, 5, 5, 5);
 //        gbc.anchor = GridBagConstraints.WEST;
 
         // Add Label

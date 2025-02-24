@@ -14,7 +14,7 @@ public class FormTextField {
 
     public  FormTextField(){
         this.label = new JLabel();
-        this.field = new JPasswordField();
+        this.field = new JTextField();
         label.setFont(FontUtils.Heading_2_Plain);
         field.setFont(FontUtils.Heading_2_Plain);
     }
@@ -24,7 +24,7 @@ public class FormTextField {
     }
 
     public JPanel create() {
-        formFieldGridBagConstraints.insets = new Insets(5, 5, 5, 5);
+//        formFieldGridBagConstraints.insets = new Insets(5, 5, 5, 5);
 //        gbc.anchor = GridBagConstraints.WEST;
 
         // Add Label

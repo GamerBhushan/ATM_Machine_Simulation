@@ -209,7 +209,7 @@ public class ATM extends JFrame {
                 }
             }
         });
-//        autoLoginThread.start();
+        autoLoginThread.start();
         return panel;
     }
 
