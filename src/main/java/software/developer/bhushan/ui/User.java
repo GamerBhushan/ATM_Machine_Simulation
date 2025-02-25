@@ -216,16 +216,19 @@ public class User {
         logoutButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                int choice = JOptionPane.showOptionDialog(
-                        atmGui, // Parent component
-                        "Are You Sure To Logout? 😊", // Message
-                        "Logout Confirmation", // Title
-                        JOptionPane.YES_NO_OPTION, // Option type
-                        JOptionPane.QUESTION_MESSAGE, // Message type
-                        null, // Custom icon (null = default)
-                        new String[]{"Logout", "Cancel"}, // Custom button labels
-                        "Cancel" // Default selected option
-                );
+//                int choice = JOptionPane.showOptionDialog(
+//                        atmGui, // Parent component
+//                        "Are You Sure To Logout? 😊", // Message
+//                        "Logout Confirmation", // Title
+//                        JOptionPane.YES_NO_OPTION, // Option type
+//                        JOptionPane.QUESTION_MESSAGE, // Message type
+//                        null, // Custom icon (null = default)
+//                        new String[]{"Logout", "Cancel"}, // Custom button labels
+//                        "Cancel" // Default selected option
+//                );
+
+                int choice = ATM.showOptionDialog(atmGui,"Logout Confirmation", "Are You Sure To Logout? 😊",JOptionPane.YES_NO_OPTION,JOptionPane.QUESTION_MESSAGE,null, new String[]{"Logout", "Cancel"}, "Cancel");
+
                 if (choice == JOptionPane.YES_OPTION) {
 //                    System.out.println("User chose to logout.");
                     // Perform logout logic here

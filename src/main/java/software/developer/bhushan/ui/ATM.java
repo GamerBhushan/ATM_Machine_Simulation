@@ -1,6 +1,7 @@
 package software.developer.bhushan.ui;
 
 import software.developer.bhushan.annotations.MC;
+import software.developer.bhushan.annotations.MCOptionTypes;
 import software.developer.bhushan.components.StylishButtons;
 import software.developer.bhushan.font.FontUtils;
 import software.developer.bhushan.res.Resources;
@@ -18,6 +19,7 @@ import java.awt.event.ActionListener;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.ArrayList;
 
 public class ATM extends JFrame {
     public static SQLiteDatabaseHelper databaseHelper = new SQLiteDatabaseHelper();
@@ -443,10 +445,33 @@ public class ATM extends JFrame {
         }
     }
 
+    public static int showOptionDialog(Component parent, String title, String message, @MCOptionTypes(intValues = {JOptionPane. DEFAULT_OPTION,JOptionPane. YES_NO_OPTION,JOptionPane. YES_NO_CANCEL_OPTION,JOptionPane. OK_CANCEL_OPTION}) int optionType,
+                                       @MC(intValues = {JOptionPane.INFORMATION_MESSAGE, JOptionPane.WARNING_MESSAGE,
+                                               JOptionPane.ERROR_MESSAGE, JOptionPane.QUESTION_MESSAGE,
+                                               JOptionPane.PLAIN_MESSAGE}) int msgType, Icon icon,String[] options, String defaultSelected){
+
+//        ArrayList<JButton> buttons = new ArrayList<>();
+//        int defSel = 0;
+//        for (String op : options){
+//            buttons.add(dialogButton(op));
+//            if (op.equals(defaultSelected)){
+//                defSel = buttons.size()-1;
+//            }
+//        }
+        int val = JOptionPane.showOptionDialog(parent,messageLabel(message),title,optionType,msgType,icon,options,defaultSelected);
+        return val;
+    }
+
     public static JLabel messageLabel(String msg){
         JLabel msgLabel = new JLabel("<html><body style='text-align: center;'>" + msg.replace("\n", "<br>") + "</body></html>");
         msgLabel.setFont(FontUtils.Heading_3_Plain);
         return msgLabel;
+    }
+
+    public static JButton dialogButton(String title){
+        JButton button = new JButton(title);
+        StylishButtons.styleButton(button);
+        return button;
     }
 
     public void showCard(String cardName) {
