@@ -349,46 +349,67 @@ public class User {
         gbc.insets = new Insets(10, 10, 10, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        JLabel headingLabel = new JLabel("",JLabel.CENTER);
-
+        JLabel headingLabel = new JLabel("", JLabel.CENTER);
         headingLabel.setFont(FontUtils.Heading_2_Plain);
         panel.add(headingLabel, gbc);
 
         gbc.gridwidth = 1;
         JLabel acNo = new JLabel("Ac No : ");
         acNo.setFont(FontUtils.Heading_2_Plain);
-        gbc.gridy++; panel.add(acNo,gbc);
-        JLabel uAcNo =  new JLabel(currentLoginUser.getUser_Account_Number());
-        uAcNo.setFont(FontUtils.Heading_2_Plain);
-        gbc.gridx=1;
-        panel.add(uAcNo,gbc);
+        gbc.gridy++;
+        panel.add(acNo, gbc);
 
-        gbc.gridx = 0; gbc.gridy++;
+        JLabel uAcNo = new JLabel(currentLoginUser.getUser_Account_Number());
+        uAcNo.setFont(FontUtils.Heading_2_Plain);
+        gbc.gridx = 1;
+        panel.add(uAcNo, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
         JLabel amountLabel = new JLabel("Amount : $");
         amountLabel.setFont(FontUtils.Heading_2_Plain);
-        panel.add(amountLabel,gbc);
+        panel.add(amountLabel, gbc);
+
         gbc.gridx = 1;
         JTextField amountField = new JTextField();
         FieldUtils.makeFieldFloatField(amountField);
         amountField.setColumns(10);
         amountField.setFont(FontUtils.Heading_2_Plain);
-        panel.add(amountField,gbc);
+        panel.add(amountField, gbc);
 
-        gbc.gridx = 0; gbc.gridy++;
-        panel.add(getBackButton(),gbc);
+        // Add PIN Field
+        gbc.gridx = 0;
+        gbc.gridy++;
+        JLabel pinLabel = new JLabel("PIN : ");
+        pinLabel.setFont(FontUtils.Heading_2_Plain);
+        panel.add(pinLabel, gbc);
+
+        gbc.gridx = 1;
+        JPasswordField pinField = new JPasswordField();
+        FieldUtils.makeFieldPinField(pinField);
+        pinField.setColumns(10);
+        pinField.setFont(FontUtils.Heading_2_Plain);
+        panel.add(pinField, gbc);
+
+        gbc.gridx = 0;
+        gbc.gridy++;
+        panel.add(getBackButton(), gbc);
+
         gbc.gridx = 1;
         JButton makeTransactionButton = new JButton();
         makeTransactionButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                handleWithdrawDeposit(amountField.getText(),transactionType);
-
+                String amount = amountField.getText();
+                String pin = new String(pinField.getPassword()); // Get PIN value securely
+                handleWithdrawDeposit(amount, pin, transactionType);
             }
         });
-        StylishButtons.styleButton(makeTransactionButton);
-        panel.add(makeTransactionButton,gbc);
 
-        if (transactionType.equals(TransactionModel.TYPE_WITHDRAWAL)){
+        StylishButtons.styleButton(makeTransactionButton);
+        panel.add(makeTransactionButton, gbc);
+
+        if (transactionType.equals(TransactionModel.TYPE_WITHDRAWAL)) {
             headingLabel.setText("Cash Withdrawal");
             makeTransactionButton.setText("Withdraw");
         } else if (transactionType.equals(TransactionModel.TYPE_DEPOSIT)) {
@@ -399,40 +420,61 @@ public class User {
         return panel;
     }
 
-    private void handleWithdrawDeposit(String amountStr,String transactionType) {
+
+    private void handleWithdrawDeposit(String amountStr, String pin, String transactionType) {
         try {
-            double amount = Double.parseDouble(amountStr);
-            String errMsg = "";
-            if (transactionType.equals(TransactionModel.TYPE_WITHDRAWAL)){
-                errMsg = "Insufficient Balance";
-            }else if (transactionType.equals(TransactionModel.TYPE_DEPOSIT)){
-                errMsg = "Invalid Amount";
+            // Validate PIN
+            if (pin.isEmpty()) {
+                throw new Exception("PIN is required.");
+            }
+            if (!currentLoginUser.getUser_Pin().equals(pin)) { // Assuming a method to validate PIN
+                throw new Exception("Incorrect PIN. Please try again.");
             }
 
-            if (transactionType.equals(TransactionModel.TYPE_DEPOSIT) && amount > 0){
-                currentLoginUser.setUser_Balance(Double.parseDouble(String.format("%.2f",currentLoginUser.getUser_Balance()+amount)));
-                ATM.databaseHelper.getUserTable().updateByAccountNumber(ATM.databaseHelper.getConnection(),currentLoginUser);
-                TransactionModel transactionModel = getTransactionModel(amountStr,currentLoginUser.getUser_Account_Number(),"Self",TransactionModel.TYPE_DEPOSIT);
-                ATM.databaseHelper.getTransactionTable().insert(ATM.databaseHelper.getConnection(),transactionModel);
-                balanceLabel.setText("$ "+currentLoginUser.getUser_Balance());
-                ATM.showMessageDialog(atmGui,"Transaction Successful","Deposited Amount : "+amountStr,JOptionPane.INFORMATION_MESSAGE,null);
-                errMsg = null;
-            }else if (transactionType.equals(TransactionModel.TYPE_WITHDRAWAL) && currentLoginUser.getUser_Balance() >= amount && amount > 0){
-                currentLoginUser.setUser_Balance(Double.parseDouble(String.format("%.2f",currentLoginUser.getUser_Balance()-amount)));
-                ATM.databaseHelper.getUserTable().updateByAccountNumber(ATM.databaseHelper.getConnection(),currentLoginUser);
-                TransactionModel transactionModel = getTransactionModel(amountStr,currentLoginUser.getUser_Account_Number(),"Self",TransactionModel.TYPE_WITHDRAWAL);
-                ATM.databaseHelper.getTransactionTable().insert(ATM.databaseHelper.getConnection(),transactionModel);
-                balanceLabel.setText("$ "+currentLoginUser.getUser_Balance());
-                ATM.showMessageDialog(atmGui,"Transaction Successful","Withdrawal Amount : "+amountStr,JOptionPane.INFORMATION_MESSAGE,null);
-                errMsg = null;
-            }else {
-                throw new Exception(errMsg);
+            // Validate amount input
+            double amount;
+            try {
+                amount = Double.parseDouble(amountStr);
+                if (amount <= 0) {
+                    throw new Exception("Amount must be greater than zero.");
+                }
+            } catch (NumberFormatException e) {
+                throw new Exception("Invalid amount. Please enter a numeric value.");
+            }
+
+            if (transactionType.equals(TransactionModel.TYPE_DEPOSIT)) {
+                // Deposit logic
+                currentLoginUser.setUser_Balance(Double.parseDouble(String.format("%.2f", currentLoginUser.getUser_Balance() + amount)));
+                ATM.databaseHelper.getUserTable().updateByAccountNumber(ATM.databaseHelper.getConnection(), currentLoginUser);
+                TransactionModel transactionModel = getTransactionModel(amountStr, currentLoginUser.getUser_Account_Number(), "Self", TransactionModel.TYPE_DEPOSIT);
+                ATM.databaseHelper.getTransactionTable().insert(ATM.databaseHelper.getConnection(), transactionModel);
+
+                balanceLabel.setText("$ " + currentLoginUser.getUser_Balance());
+                ATM.showMessageDialog(atmGui, "Transaction Successful", "Deposited Amount: $" + amountStr, JOptionPane.INFORMATION_MESSAGE, null);
+
+            } else if (transactionType.equals(TransactionModel.TYPE_WITHDRAWAL)) {
+                // Check sufficient balance
+                if (currentLoginUser.getUser_Balance() < amount) {
+                    throw new Exception("Insufficient balance for withdrawal.");
+                }
+
+                // Withdrawal logic
+                currentLoginUser.setUser_Balance(Double.parseDouble(String.format("%.2f", currentLoginUser.getUser_Balance() - amount)));
+                ATM.databaseHelper.getUserTable().updateByAccountNumber(ATM.databaseHelper.getConnection(), currentLoginUser);
+                TransactionModel transactionModel = getTransactionModel(amountStr, currentLoginUser.getUser_Account_Number(), "Self", TransactionModel.TYPE_WITHDRAWAL);
+                ATM.databaseHelper.getTransactionTable().insert(ATM.databaseHelper.getConnection(), transactionModel);
+
+                balanceLabel.setText("$ " + currentLoginUser.getUser_Balance());
+                ATM.showMessageDialog(atmGui, "Transaction Successful", "Withdrawal Amount: $" + amountStr, JOptionPane.INFORMATION_MESSAGE, null);
+            } else {
+                throw new Exception("Invalid transaction type.");
             }
 
         } catch (Exception e) {
-            ATM.showMessageDialog(atmGui,"Transaction Cancel","Error : "+e.getMessage(),JOptionPane.ERROR_MESSAGE,null);
+            ATM.showMessageDialog(atmGui, "Transaction Failed", "Error: " + e.getMessage(), JOptionPane.ERROR_MESSAGE, null);
         }
     }
+
 
     private  TransactionModel getTransactionModel(String amountStr,String From, String To,String Type) {
         String cDate = Utils.getCurrentDate(), cTime = Utils.getCurrentTime();

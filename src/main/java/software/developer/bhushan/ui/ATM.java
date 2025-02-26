@@ -286,7 +286,7 @@ public class ATM extends JFrame {
                         || emailField.getText().replace(" ","").length() == 0
                         || pinField.getText().replace(" ","").length() == 0
                 ){
-                    showMessageDialog(ATM.this,"Invalid Credentials","Please Fill Proper Information",JOptionPane.ERROR_MESSAGE,null);
+                    showMessageDialog(ATM.this,"Invalid Credentials","Please Fill All Required Information",JOptionPane.ERROR_MESSAGE,null);
                 } else if (pinField.getText().length() < 4) {
                     showMessageDialog(ATM.this,"Invalid Pin","Pin Should be 4 Digits Long",JOptionPane.ERROR_MESSAGE,null);
                 } else{
