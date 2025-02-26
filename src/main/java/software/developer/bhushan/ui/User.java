@@ -286,7 +286,7 @@ public class User {
 
 
         // PIN Label
-        JLabel pinLabel = new JLabel("Enter PIN: ");
+        JLabel pinLabel = new JLabel("PIN: ");
         pinLabel.setFont(FontUtils.Heading_2_Plain);
         gbc.gridx = 0; gbc.gridy++;
         panel.add(pinLabel, gbc);
@@ -294,6 +294,7 @@ public class User {
         // PIN Input Field (Secure)
         JPasswordField pinField = new JPasswordField(15);
         pinField.setFont(FontUtils.Heading_2_Plain);
+        FieldUtils.makeFieldPinField(pinField);
         pinField.setToolTipText("Enter your PIN");
         gbc.gridx++;
         panel.add(pinField, gbc);
