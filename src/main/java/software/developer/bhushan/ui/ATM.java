@@ -25,7 +25,7 @@ public class ATM extends JFrame {
     public static SQLiteDatabaseHelper databaseHelper = new SQLiteDatabaseHelper();
     private UserModel autoLoginUser;
     private Container container = this.getContentPane();
-    private String title = "ATM GUI Machine Simulation";
+    private String title = "ATM Machine Simulation";
 
     private JPanel atmPanel = new JPanel();
     private BorderLayout borderLayout = new BorderLayout();
